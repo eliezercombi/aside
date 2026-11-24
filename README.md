@@ -110,12 +110,13 @@ test/         48 tests, run with `npm test`
 - **The simulator.** The whole demo story ran in the Even Hub simulator 0.9.5, driven through its automation API: list, swipe, brief, done, hold-to-capture, save, a question, move to tomorrow, the system menu. The app logged no errors. The captures above and the demo video come from that run.
 - **Automated tests.** 48 of them: date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow, the Telegram bot and the demo recorder. Two run the whole path over real HTTP against in-memory stand-ins for the Notion and Telegram Bot APIs.
 - **Desktop Chrome**, on the demo list and against the dev relay with cross-origin requests.
+- **Packaging.** `npm run pack` type-checks, builds and stamps `aside.ehpk` (82 KB) with the Even Hub CLI for SDK 0.0.16.
 
 Not done:
 
 - **Telegram, live.** The bot is covered by tests against a stand-in for the Bot API only. On the day of the run Telegram answered every call from the two bot tokens I had, `getMe` included, with "429 Too Many Requests", so the forwarding flow has not been shown end to end with a real bot.
 - **Live speech.** Voice capture has been exercised with scripted and mocked transcripts, not with a speech service.
-- **Physical glasses.** Simulator only.
+- **Physical glasses.** Simulator only. The package has been built but not installed on a device.
 
 ## Hackathon notes
 
