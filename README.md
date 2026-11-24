@@ -110,11 +110,12 @@ test/         48 tests, run with `npm test`
 - **The simulator.** The whole demo story ran in the Even Hub simulator 0.9.5, driven through its automation API: list, swipe, brief, done, hold-to-capture, save, a question, move to tomorrow, the system menu. The app logged no errors. The captures above and the demo video come from that run.
 - **Automated tests.** 48 of them: date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow, the Telegram bot and the demo recorder. Two run the whole path over real HTTP against in-memory stand-ins for the Notion and Telegram Bot APIs.
 - **Desktop Chrome**, on the demo list and against the dev relay with cross-origin requests.
+- **Telegram, live.** On 24 November 2026 the relay ran with a real bot: pairing with the printed code, a refusal for a `/start` without it, a typed note that came back as a draft with the right Friday, **Save to Notion** pressed in Telegram and the page appearing in the Notion list, and a question ("what is due this week?") answered in the chat. The relay's inbox, which is what the glasses poll, held the draft until it was saved.
 - **Packaging.** `npm run pack` type-checks, builds and stamps `aside.ehpk` (82 KB) with the Even Hub CLI for SDK 0.0.16.
 
 Not done:
 
-- **Telegram, live.** The bot is covered by tests against a stand-in for the Bot API only. On the day of the run Telegram answered every call from the two bot tokens I had, `getMe` included, with "429 Too Many Requests", so the forwarding flow has not been shown end to end with a real bot.
+- **Telegram and the glasses at the same moment.** The live draft was confirmed from the Telegram side. Picking the same draft up in the simulator while the chat is open is covered by the end-to-end tests, not by a live run. Forwarded messages have also only been tested against the stand-in.
 - **Live speech.** Voice capture has been exercised with scripted and mocked transcripts, not with a speech service.
 - **Physical glasses.** Simulator only. The package has been built but not installed on a device.
 
