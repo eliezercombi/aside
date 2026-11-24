@@ -33,6 +33,18 @@ const OFFSET = Number(env.TZ_OFFSET_MINUTES ?? -new Date().getTimezoneOffset())
 /** "Today" in the user's time zone, as YYYY-MM-DD. */
 export const todayIn = (offsetMinutes, now = Date.now()) => iso(new Date(now + offsetMinutes * 60_000))
 
+/**
+ * The relay's routes, as plain async functions keyed by "METHOD /path".
+ * @param {{
+ *   notion: any,
+ *   assistant: any,
+ *   dataSourceId?: string | null,
+ *   stt?: { url: string, key?: string, model?: string } | null,
+ *   inbox?: any,
+ *   fetch?: typeof fetch,
+ *   today?: () => string,
+ * }} options
+ */
 export function createRelay({ notion, assistant, dataSourceId = null, stt = null, inbox = null, fetch: fetcher = fetch, today = () => todayIn(OFFSET) }) {
   let source = dataSourceId
 

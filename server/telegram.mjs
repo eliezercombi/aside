@@ -25,7 +25,12 @@ export class Telegram {
       signal,
     })
     const payload = await response.json().catch(() => ({}))
-    if (!payload.ok) throw new Error(`Telegram: ${payload.description ?? `answered ${response.status}`}`)
+    if (!payload.ok) {
+      const error = new Error(`Telegram: ${payload.description ?? `answered ${response.status}`}`)
+      // Telegram says how long to stay away when it rate-limits a bot.
+      error.retryAfter = payload.parameters?.retry_after ?? null
+      throw error
+    }
     return payload.result
   }
 }
@@ -186,7 +191,7 @@ export class Inbox {
       } catch (error) {
         if (signal?.aborted) return
         this.log(error.message)
-        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await new Promise((resolve) => setTimeout(resolve, ((error.retryAfter ?? 2) + 1) * 1000))
       }
     }
   }

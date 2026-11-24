@@ -6,14 +6,9 @@ The moment you remember something is rarely the moment you have a keyboard. Asid
 
 Built for the Heads Up hackathon, track **AI Assistants & Work** (Notion, OpenRouter), with a Telegram bot as a second way in.
 
-```
-TODAY   1 of 4                                         1 overdue
-Send the board deck to Anna
+![Aside in the Even Hub simulator: today's task from Notion, a page brief, a drafted task waiting for a tap, and an answer to a spoken question](docs/simulator.png)
 
-Overdue   Yesterday
-
-tap: actions   swipe: next   hold: capture   double-tap: exit
-```
+*Captured from the Even Hub simulator during the recorded demo run, against a real Notion workspace and a real model. [Watch the 66-second demo](docs/demo.mp4).*
 
 ## Read, then write
 
@@ -44,7 +39,7 @@ The bot is yours alone. It serves the one private chat that started it with the 
 - It writes the **draft**: "remind me to call the bank next Friday about the mortgage" becomes *Call the bank about the mortgage, due Fri 4 Dec*.
 - It writes the **brief** of a page.
 - It **answers questions** about your open tasks. It is given the list and returns text; it has no way to change anything, and task titles are passed to it as data. With no model you get an honest summary instead: the counts and what comes first.
-- Its draft is **checked before you see it**: the date has to be a real calendar date that is not in the past, the title cannot be empty. If the model is down, slow or wrong, a rule-based parser produces the draft instead. That parser is also all you get if you configure no model, and it handles "tomorrow", weekdays, "next Friday", "in 2 weeks", "1 Dec", "by the end of the week".
+- Its draft is **checked before you see it**: the title cannot be empty, and the date is never taken on trust. A date you actually said ("on Friday", "1 Dec") is resolved by exact rules; the model's date is used only when the rules find none, and only if it is a real calendar date that is not in the past. If the model is down, slow or wrong, a rule-based parser produces the draft instead. That parser is also all you get if you configure no model, and it handles "tomorrow", weekdays, "next Friday", "in 2 weeks", "1 Dec", "by the end of the week".
 - It never decides to save anything.
 
 ## Works with the task list you already have
@@ -74,7 +69,7 @@ On real glasses the app runs inside the Even app on your phone, so `localhost` i
 | `NOTION_TOKEN` | yes | Notion personal access token or internal connection token |
 | `NOTION_DATA_SOURCE_ID` | no | The task list to use; otherwise the best match is found by search |
 | `OPENROUTER_API_KEY` | no | Turns on model-written drafts, briefs and answers |
-| `OPENROUTER_MODEL` | no | Default `anthropic/claude-haiku-5.5`; any OpenRouter model works, including the free ones |
+| `OPENROUTER_MODEL` | no | Default `anthropic/claude-haiku-5.5`; any OpenRouter model works. With no credits, `nvidia/nemotron-3-ultra-550b-a55b:free` did the job in the demo |
 | `STT_URL`, `STT_KEY`, `STT_MODEL` | no | OpenAI-compatible transcription endpoint for voice capture |
 | `TELEGRAM_BOT_TOKEN` | no | Token of a bot you created with @BotFather. Turns on capture from Telegram; the relay prints the `/start` code to pair with |
 | `TELEGRAM_CHAT_ID` | no | Your chat id, printed after pairing. Set it to stay paired across restarts |
@@ -100,7 +95,7 @@ src/core      task source interface, relay client, demo list, text layout
 src/ui        pages (576x288 layouts), controller, display adapter, event mapping
 shared/       date parsing, draft checking, telling a question from a task; used by the relay and the demo
 server/       relay: Notion client, OpenRouter client, Telegram bot, HTTP API; Node built-ins only
-test/         47 tests, run with `npm test`
+test/         48 tests, run with `npm test`
 ```
 
 - The Notion token, the model key and the speech key live only in the relay. The app holds a relay address and a relay token.
@@ -110,12 +105,17 @@ test/         47 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow, the Telegram bot and the demo recorder: 47 automated tests. Notion, OpenRouter and the Telegram Bot API are replaced in them by stand-ins built from their documentation, so none of the three has been called for real yet.
-- Two of those tests run the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates; and a forwarded Telegram message travelling to the display and back.
-- The whole app in desktop Chrome: on the demo list, and against the dev relay over HTTP with cross-origin requests (list, brief, question, capture and save, done).
-- TODO before submission: runs against a live Notion workspace, OpenRouter, a real Telegram bot and the simulator are recorded here once done.
+- **Real Notion.** The relay ran against a live workspace on 24 November 2026 with a personal access token: it found the task list by itself (Notion's stock "Tasks" database: title, "Due date", a Status with a Complete group), listed what was due, created tasks, marked one done, moved one to tomorrow and read page content. Nothing in the client had to change after the first contact.
+- **Real model.** Drafts, briefs and answers came from `nvidia/nemotron-3-ultra-550b-a55b:free` through OpenRouter, in well under a second each with reasoning switched off. The first live run showed why the model's dates are not trusted: another free model resolved "next Friday" to a Saturday. Since then a date the speaker actually said is always resolved by the rules, and the model's date is used only when the rules find none.
+- **The simulator.** The whole demo story ran in the Even Hub simulator 0.9.5, driven through its automation API: list, swipe, brief, done, hold-to-capture, save, a question, move to tomorrow, the system menu. The app logged no errors. The captures above and the demo video come from that run.
+- **Automated tests.** 48 of them: date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow, the Telegram bot and the demo recorder. Two run the whole path over real HTTP against in-memory stand-ins for the Notion and Telegram Bot APIs.
+- **Desktop Chrome**, on the demo list and against the dev relay with cross-origin requests.
 
-Not done: nothing has been tested on physical glasses.
+Not done:
+
+- **Telegram, live.** The bot is covered by tests against a stand-in for the Bot API only. On the day of the run Telegram answered every call from the two bot tokens I had, `getMe` included, with "429 Too Many Requests", so the forwarding flow has not been shown end to end with a real bot.
+- **Live speech.** Voice capture has been exercised with scripted and mocked transcripts, not with a speech service.
+- **Physical glasses.** Simulator only.
 
 ## Hackathon notes
 

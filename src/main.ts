@@ -77,7 +77,8 @@ const voice: Voice = {
   start: () => {
     pcm.length = 0
     capturing = true
-    void bridge.audioControl(true).catch((error) => log(`microphone: ${String(error)}`))
+    // A scripted transcript needs no audio, so the microphone stays closed.
+    if (!scripted.length) void bridge.audioControl(true).catch((error) => log(`microphone: ${String(error)}`))
   },
   stop: async () => {
     capturing = false
@@ -92,6 +93,7 @@ const voice: Voice = {
 }
 
 let companion: { update: (page: Page) => void } | null = null
+let shown = ''
 
 const app = new App({
   source,
@@ -100,6 +102,8 @@ const app = new App({
   render: (page) => {
     display.show(page)
     companion?.update(page)
+    // One log line per screen change: enough to follow a session, and what the demo recorder waits on.
+    if (page.key !== shown) log(`screen ${(shown = page.key)}`)
   },
   exit: () => display.exit(),
 })

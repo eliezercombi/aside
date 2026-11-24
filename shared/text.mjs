@@ -18,16 +18,19 @@ export function draftByRules(spoken, today) {
 }
 
 /**
- * Accept the model's draft only as far as it can be verified:
- * the title must be non-empty and not absurdly long, the date must be a real
- * calendar date that is not in the past. Anything else falls back to the rules.
+ * Accept the model's draft only as far as it can be verified: the title must be
+ * non-empty and not absurdly long, and the date is never taken on trust (see below).
+ * Anything else falls back to the rules.
  */
 export function checkDraft(candidate, spoken, today) {
   const fallback = draftByRules(spoken, today)
   if (!candidate || typeof candidate !== 'object') return fallback
   const title = tidy(candidate.title).slice(0, 120)
   if (!title) return fallback
-  const due = isIsoDate(candidate.due) && candidate.due >= today ? candidate.due : candidate.due == null ? null : fallback.due
+  // A date the speaker actually said ("on Friday", "1 Dec") is resolved by the rules, which are
+  // exact. The model's date is used only when the rules found none, and only if it is a real,
+  // future calendar date.
+  const due = fallback.due ?? (isIsoDate(candidate.due) && candidate.due >= today ? candidate.due : null)
   const note = typeof candidate.note === 'string' ? candidate.note.replace(/\s+/g, ' ').trim().slice(0, 500) : ''
   return { title, due, note, by: 'model' }
 }

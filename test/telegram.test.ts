@@ -200,6 +200,10 @@ test('polling Telegram advances the offset and survives a failure', async () => 
   assert.equal(inbox.pending().length, 1)
 
   await assert.rejects(() => new Telegram({ token: 'x', fetch: (async () => new Response(JSON.stringify({ ok: false, description: 'Unauthorized' }), { status: 401 })) as unknown as typeof fetch }).call('getMe'), /Telegram: Unauthorized/)
+
+  const limited = (async () => new Response(JSON.stringify({ ok: false, error_code: 429, description: 'Too Many Requests: retry after 32', parameters: { retry_after: 32 } }), { status: 429 })) as unknown as typeof fetch
+  const error = await new Telegram({ token: 'x', fetch: limited }).call('getUpdates').catch((e: Error & { retryAfter?: number }) => e)
+  assert.equal((error as { retryAfter?: number }).retryAfter, 32, 'the wait Telegram asks for is kept, so polling can honour it')
 })
 
 test('a forwarded message reaches the glasses, and a tap there saves it', async (t) => {
