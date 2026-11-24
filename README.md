@@ -93,8 +93,8 @@ test/         42 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow and the Telegram bot: 42 automated tests, replaced by stand-ins for Notion, OpenRouter and the Telegram Bot API built from their documentation.
-- One of those tests runs the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates.
+- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow and the Telegram bot: 42 automated tests. Notion, OpenRouter and the Telegram Bot API are replaced in them by stand-ins built from their documentation, so none of the three has been called for real yet.
+- Two of those tests run the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates; and a forwarded Telegram message travelling to the display and back.
 - The whole app in a desktop browser on the demo list.
 - TODO before submission: runs against a live Notion workspace, OpenRouter, a real Telegram bot and the simulator are recorded here once done.
 
