@@ -67,10 +67,11 @@ export function fakeNotion(rows: Row[]) {
     }
 
     const one = pathname.match(/^\/v1\/pages\/([^/]+)(\/markdown)?$/)
-    const row = one && rows.find((r) => r.id === one[1])
-    if (one && !row) return answer(404, { object: 'error', code: 'object_not_found', message: 'Could not find page.' })
-    if (row && one[2] && init.method === 'GET') return answer(200, { object: 'page_markdown', id: row.id, markdown: row.body, truncated: false })
-    if (row && init.method === 'PATCH') {
+    if (!one) return answer(404, { message: 'Not found' })
+    const row = rows.find((r) => r.id === one[1])
+    if (!row) return answer(404, { object: 'error', code: 'object_not_found', message: 'Could not find page.' })
+    if (one[2] && init.method === 'GET') return answer(200, { object: 'page_markdown', id: row.id, markdown: row.body, truncated: false })
+    if (!one[2] && init.method === 'PATCH') {
       const { Status, Due } = body.properties ?? {}
       if (Status) {
         if (!options.some((o) => o.name === Status.status.name)) return invalid(`Status option "${Status.status.name}" does not exist.`)

@@ -16,7 +16,10 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 export class Assistant {
   constructor({ key = '', model = 'anthropic/claude-haiku-5.5', fetch: fetcher = fetch, url = OPENROUTER } = {}) {
-    Object.assign(this, { key, model, fetcher, url })
+    this.key = key
+    this.model = model
+    this.fetcher = fetcher
+    this.url = url
   }
 
   get enabled() {

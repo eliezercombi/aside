@@ -12,7 +12,9 @@ import { isQuestion } from '../shared/text.mjs'
 export class Telegram {
   constructor({ token, fetch: fetcher = fetch, api = 'https://api.telegram.org' }) {
     if (!token) throw new Error('TELEGRAM_BOT_TOKEN is required')
-    Object.assign(this, { token, fetcher, api })
+    this.token = token
+    this.fetcher = fetcher
+    this.api = api
   }
 
   async call(method, params = {}, { signal } = {}) {
@@ -47,7 +49,17 @@ export class Inbox {
    * `code` pairs the first chat that sends `/start <code>`; `chatId` skips pairing.
    */
   constructor({ bot, code, chatId = null, log = () => {} }) {
-    Object.assign(this, { bot, code: String(code), chat: chatId, log, items: [], waiters: [], tries: 0, seq: 0, hooks: null })
+    this.bot = bot
+    this.code = String(code)
+    /** The one chat that is served, or null until it pairs. */
+    this.chat = chatId
+    this.log = log
+    /** Drafts waiting for a decision: { id, draft, chat, message }. */
+    this.items = []
+    this.waiters = []
+    this.tries = 0
+    this.seq = 0
+    this.hooks = null
   }
 
   /** The relay supplies what the inbox cannot do itself: drafting, saving to Notion, answering. */

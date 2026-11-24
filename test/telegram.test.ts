@@ -250,7 +250,6 @@ test('a forwarded message reaches the glasses, and a tap there saves it', async 
 })
 
 test('drafts from outside never interrupt something in progress', async () => {
-  const w = world()
   const pages: Page[] = []
   const draft: Draft = { title: 'Buy milk', due: null, when: 'No date', note: '', heard: 'buy milk', by: 'rules', inboxId: '9', from: 'Telegram' }
   const source = { status: async () => ({ list: 'Tasks', model: null, voice: false, telegram: true, demo: false }), today: async () => [{ id: 'p1', title: 'A', due: TUE, when: 'Today', overdue: false }] }
@@ -265,5 +264,4 @@ test('drafts from outside never interrupt something in progress', async () => {
   assert.equal(pages[pages.length - 1].key, 'draft')
   app.inbox([draft])
   assert.equal(pages.filter((page) => page.key === 'draft').length, 1, 'the same draft is not shown again while it is on screen')
-  assert.ok(w)
 })

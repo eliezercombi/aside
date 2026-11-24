@@ -62,7 +62,11 @@ export function openFilter(schema, { before = null } = {}) {
 export class Notion {
   constructor({ token, fetch: fetcher = fetch, version = NOTION_VERSION }) {
     if (!token) throw new Error('NOTION_TOKEN is required')
-    Object.assign(this, { token, fetcher, version, schemas: new Map() })
+    this.token = token
+    this.fetcher = fetcher
+    this.version = version
+    /** Schemas already read, by data source id. */
+    this.schemas = new Map()
   }
 
   async call(method, path, body) {
