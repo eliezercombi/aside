@@ -67,6 +67,8 @@ NOTION_TOKEN=ntn_... OPENROUTER_API_KEY=sk-or-... npm run relay
 
 It prints a relay token. Enter the relay address and that token on the phone page under **Notion**. The relay finds your task list by itself, or you can pin one with `NOTION_DATA_SOURCE_ID`.
 
+On real glasses the app runs inside the Even app on your phone, so `localhost` is the phone. Run the relay somewhere the phone can reach, and add that address to the `network` whitelist in `app.json` before `npm run pack`; the Even app only lets a plugin call hosts listed there.
+
 | Variable | Required | Meaning |
 | --- | --- | --- |
 | `NOTION_TOKEN` | yes | Notion personal access token or internal connection token |
