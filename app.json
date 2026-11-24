@@ -1,0 +1,20 @@
+{
+  "package_id": "com.eliezercombi.aside",
+  "edition": "202601",
+  "name": "Aside",
+  "version": "0.1.0",
+  "min_sdk_version": "0.0.16",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Talks to the Aside relay you run yourself, which reads and updates your Notion task list.",
+      "whitelist": ["http://localhost:8788"]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Hold the touchpad to say a task. Audio is recorded only while you hold."
+    }
+  ],
+  "supported_languages": ["en"]
+}
