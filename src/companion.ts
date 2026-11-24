@@ -79,7 +79,7 @@ export function mountCompanion(root: HTMLElement, api: CompanionApi): { update: 
         ${relay ? '<div class="pad"><button data-demo>Back to the demo list</button></div>' : ''}
         <p class="fine">${status.demo
           ? 'You are looking at a built-in demo list. To use your own tasks, run the relay from this repository with a Notion token and enter its address here. The token never leaves the machine the relay runs on.'
-          : `Drafts and briefs are written by ${status.model ? esc(status.model) : 'built-in rules'}. Voice is ${status.voice ? 'on' : 'off'}.`}</p>
+          : `Drafts, briefs and answers are written by ${status.model ? esc(status.model) : 'built-in rules'}. Voice is ${status.voice ? 'on' : 'off'}. Telegram is ${status.telegram ? 'on: forward a message to your bot and it shows up here as a draft' : 'off'}.`}</p>
       </section>`
   }
 

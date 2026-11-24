@@ -133,6 +133,26 @@ companion = mountCompanion(document.getElementById('app') as HTMLElement, {
   input: handle,
 })
 
+/**
+ * Drafts sent to the Telegram bot. The relay holds each request until something
+ * changes, so a forwarded message reaches the display within a second or so.
+ */
+async function watchInbox(): Promise<void> {
+  if (!source.inbox || !app.status.telegram) return
+  const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+  for (;;) {
+    try {
+      const items = await source.inbox(20)
+      app.inbox(items)
+      // While a draft waits for a decision the relay answers at once: do not spin.
+      if (items.length) await pause(2000)
+    } catch {
+      await pause(5000)
+    }
+  }
+}
+
 await app.start()
 setInterval(() => void refresh(), 60_000)
+void watchInbox()
 log(`ready (${preview ? 'browser preview' : 'glasses bridge'}, ${saved.relay ? 'relay' : 'demo list'})`)

@@ -4,7 +4,7 @@
 
 The moment you remember something is rarely the moment you have a keyboard. Aside puts the task list you already keep in Notion on your glasses, and lets you add to it by saying one sentence: hold the touchpad, "send the deck to Anna on Friday", release. A model turns that into a clean task with a date, you see the draft, and a tap saves it.
 
-Built for the Heads Up hackathon, track **AI Assistants & Work** (Notion, OpenRouter).
+Built for the Heads Up hackathon, track **AI Assistants & Work** (Notion, OpenRouter), with a Telegram bot as a second way in.
 
 ```
 TODAY   1 of 4                                         1 overdue
@@ -26,6 +26,18 @@ tap: actions   swipe: next   hold: capture   double-tap: exit
 | Anything | Hold, ask a question, release | "What is due this week?" is answered in a few lines from your open tasks |
 
 Nothing is written to Notion without a tap on a screen that shows exactly what will be written. Questions only read.
+
+## From Telegram to your glasses
+
+Half of what ends up on a to-do list arrives as a message. Forward it to your own Aside bot:
+
+1. Someone writes "Can you send me the Q3 deck by Friday?". You forward it to the bot.
+2. Within a second the draft is on your glasses, tagged `FROM TELEGRAM`, with who said it kept in the note.
+3. Tap on the glasses, or press **Save to Notion** under the bot's reply. Either side decides, once: the other one updates ("Saved from your glasses").
+
+Typing to the bot works the same way, and a question ("what is due this week?") is answered in the chat.
+
+The bot is yours alone. It serves the one private chat that started it with the pairing code the relay prints, stops accepting codes after five wrong guesses, and says nothing to anyone else.
 
 ## What the model does, and what it is not trusted with
 
@@ -60,6 +72,8 @@ It prints a relay token. Enter the relay address and that token on the phone pag
 | `OPENROUTER_API_KEY` | no | Turns on model-written drafts, briefs and answers |
 | `OPENROUTER_MODEL` | no | Default `anthropic/claude-haiku-5.5`; any OpenRouter model works, including the free ones |
 | `STT_URL`, `STT_KEY`, `STT_MODEL` | no | OpenAI-compatible transcription endpoint for voice capture |
+| `TELEGRAM_BOT_TOKEN` | no | Token of a bot you created with @BotFather. Turns on capture from Telegram; the relay prints the `/start` code to pair with |
+| `TELEGRAM_CHAT_ID` | no | Your chat id, printed after pairing. Set it to stay paired across restarts |
 | `TZ_OFFSET_MINUTES` | no | Minutes ahead of UTC that decide what "today" is. Defaults to the time zone of the machine the relay runs on |
 
 ## How it is built
@@ -68,8 +82,8 @@ It prints a relay token. Enter the relay address and that token on the phone pag
 src/core      task source interface, relay client, demo list, text layout
 src/ui        pages (576x288 layouts), controller, display adapter, event mapping
 shared/       date parsing, draft checking, telling a question from a task; used by the relay and the demo
-server/       relay: Notion client, OpenRouter client, HTTP API; Node built-ins only
-test/         31 tests, run with `npm test`
+server/       relay: Notion client, OpenRouter client, Telegram bot, HTTP API; Node built-ins only
+test/         42 tests, run with `npm test`
 ```
 
 - The Notion token, the model key and the speech key live only in the relay. The app holds a relay address and a relay token.
@@ -79,10 +93,10 @@ test/         31 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts and every screen flow: 31 automated tests, with Notion and OpenRouter replaced by stand-ins built from their documentation.
+- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow and the Telegram bot: 42 automated tests, replaced by stand-ins for Notion, OpenRouter and the Telegram Bot API built from their documentation.
 - One of those tests runs the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates.
 - The whole app in a desktop browser on the demo list.
-- TODO before submission: runs against a live Notion workspace, OpenRouter and the simulator are recorded here once done.
+- TODO before submission: runs against a live Notion workspace, OpenRouter, a real Telegram bot and the simulator are recorded here once done.
 
 Not done: nothing has been tested on physical glasses.
 

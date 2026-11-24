@@ -22,6 +22,9 @@ export interface Draft {
   /** The sentence the draft was made from. */
   heard: string
   by: 'model' | 'rules'
+  /** Set on drafts that arrived from outside the glasses, with where they came from. */
+  inboxId?: string
+  from?: string
 }
 
 export interface Status {
@@ -30,6 +33,8 @@ export interface Status {
   /** Model that writes drafts and briefs, or null when the built-in rules do. */
   model: string | null
   voice: boolean
+  /** Whether drafts can also arrive through a Telegram bot. */
+  telegram: boolean
   demo: boolean
 }
 
@@ -44,6 +49,10 @@ export interface Source {
   /** Answer a question about the open list. Reads only. */
   ask(question: string): Promise<string>
   transcribe(wav: Uint8Array): Promise<string>
+  /** Drafts waiting for a decision that came in from elsewhere; may hold the request for `waitSeconds`. */
+  inbox?(waitSeconds: number): Promise<Draft[]>
+  /** Save or discard such a draft. Returns the saved task. */
+  resolve?(inboxId: string, action: 'save' | 'drop'): Promise<Task | null>
 }
 
 export class RelaySource implements Source {
@@ -105,6 +114,14 @@ export class RelaySource implements Source {
     return (await this.call<{ text: string }>('POST', '/ask', { text: question })).text
   }
 
+  async inbox(waitSeconds: number): Promise<Draft[]> {
+    return (await this.call<{ items: Draft[] }>('GET', `/inbox?wait=${Math.max(0, Math.round(waitSeconds))}`)).items
+  }
+
+  async resolve(inboxId: string, action: 'save' | 'drop'): Promise<Task | null> {
+    return (await this.call<{ task: Task | null }>('POST', '/inbox', { id: inboxId, action })).task
+  }
+
   async transcribe(wav: Uint8Array): Promise<string> {
     return (await this.call<{ text: string }>('POST', '/transcribe', undefined, wav)).text
   }
@@ -151,7 +168,7 @@ export class DemoSource implements Source {
   }
 
   async status(): Promise<Status> {
-    return { list: 'Demo tasks', model: null, voice: false, demo: true }
+    return { list: 'Demo tasks', model: null, voice: false, telegram: false, demo: true }
   }
 
   async today(): Promise<Task[]> {

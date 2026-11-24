@@ -224,7 +224,7 @@ test('the relay ties it together and never writes on a draft', async () => {
   }
   const routes = createRelay({ notion, assistant: new Assistant(), today: () => TUE })
 
-  assert.deepEqual(await routes['GET /status'](), { list: 'Tasks', due: true, model: null, voice: false })
+  assert.deepEqual(await routes['GET /status'](), { list: 'Tasks', due: true, model: null, voice: false, telegram: false })
   const { tasks } = await routes['GET /today']()
   assert.deepEqual(tasks.map((t) => [t.when, t.overdue]), [['Fri 20 Nov', true], ['No date', false]])
   assert.deepEqual(log[0], ['today', 'ds1', TUE], 'the task list is discovered once and reused')

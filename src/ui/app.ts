@@ -38,7 +38,7 @@ export interface Deps {
 
 export class App {
   tasks: Task[] = []
-  status: Status = { list: 'Tasks', model: null, voice: false, demo: false }
+  status: Status = { list: 'Tasks', model: null, voice: false, telegram: false, demo: false }
   index = 0
   note = 'Hold the touchpad to capture a task.'
   screen: Screen = { kind: 'today' }
@@ -143,10 +143,7 @@ export class App {
 
       case 'draft':
         if (input === 'tap') return this.save(screen.draft)
-        if (input === 'double') {
-          this.note = 'Discarded.'
-          this.screen = { kind: 'today' }
-        }
+        if (input === 'double') return this.discard(screen.draft)
         break
 
       case 'brief':
@@ -213,9 +210,48 @@ export class App {
     })
   }
 
+  /**
+   * Drafts that arrived from outside (a Telegram message). The oldest one is shown
+   * when the wearer is not in the middle of something, and withdrawn if it was
+   * decided elsewhere while on screen.
+   */
+  inbox(items: Draft[]): void {
+    if (this.busy) return
+    const screen = this.screen
+    if (screen.kind === 'draft' && screen.draft.inboxId && !items.some((item) => item.inboxId === screen.draft.inboxId)) {
+      this.note = `Handled in ${screen.draft.from ?? 'another app'}.`
+      this.screen = { kind: 'today' }
+      this.render()
+      return
+    }
+    if (screen.kind === 'today' && items.length) {
+      this.screen = { kind: 'draft', draft: items[0] }
+      this.render()
+    }
+  }
+
+  private async discard(draft: Draft): Promise<void> {
+    const { source } = this.deps
+    if (draft.inboxId && source.resolve) {
+      const resolve = source.resolve.bind(source)
+      return this.work('Discarding...', async () => {
+        await resolve(draft.inboxId as string, 'drop')
+        this.note = 'Discarded.'
+        this.screen = { kind: 'today' }
+      })
+    }
+    this.note = 'Discarded.'
+    this.screen = { kind: 'today' }
+    this.render()
+  }
+
   private async save(draft: Draft): Promise<void> {
     return this.work('Saving to Notion...', async () => {
-      const task = await this.deps.source.save({ title: draft.title, due: draft.due, note: draft.note })
+      const { source } = this.deps
+      const fields = { title: draft.title, due: draft.due, note: draft.note }
+      // A draft from the inbox is saved where it is held, so it cannot be saved twice.
+      const task = draft.inboxId && source.resolve ? await source.resolve(draft.inboxId, 'save') : await source.save(fields)
+      if (!task) throw new Error('The draft could not be saved')
       await this.refresh()
       this.note = `Saved: ${task.title}${task.due ? ` (${task.when})` : ''}`
       this.finish(true, [`Saved to ${this.status.list}.`, task.title, task.due ? `Due ${task.when}` : 'No date'])

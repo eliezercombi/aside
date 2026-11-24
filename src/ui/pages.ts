@@ -135,7 +135,7 @@ export function draftPage(draft: Draft, measure: Measure): Page {
     menu: MENU,
     boxes: [
       captureLayer(),
-      text(1, 'tag', 0, 1, 'NEW TASK', 2),
+      text(1, 'tag', 0, 1, draft.from ? `FROM ${draft.from.toUpperCase()}` : 'NEW TASK', 2),
       text(2, 'title', 36, 2, wrap(draft.title, INNER, 2, measure).join('\n'), 4),
       text(3, 'when', 98, 1, draft.due ? `Due ${draft.when}` : 'No date', 3),
       text(4, 'note', 134, 2, wrap(draft.note, INNER, 2, measure).join('\n'), 2),

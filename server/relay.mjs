@@ -8,6 +8,7 @@
 //   OPENROUTER_API_KEY     turns on model-written drafts and briefs
 //   OPENROUTER_MODEL       default anthropic/claude-haiku-5.5
 //   STT_URL, STT_KEY, STT_MODEL   OpenAI-compatible transcription endpoint for voice capture
+//   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (forward messages to your own bot to capture them)
 //   PORT (8788), RELAY_TOKEN (printed if not set), ALLOW_ORIGIN (*), TZ_OFFSET_MINUTES (this machine's zone)
 //
 // Node 22+, no dependencies.
@@ -18,6 +19,7 @@ import { createServer } from 'node:http'
 import { addDays, friendly, isIsoDate, iso } from '../shared/dates.mjs'
 import { Assistant } from './llm.mjs'
 import { Notion } from './notion.mjs'
+import { Inbox, Telegram } from './telegram.mjs'
 
 const env = process.env
 const PORT = Number(env.PORT ?? 8788)
@@ -29,7 +31,7 @@ const OFFSET = Number(env.TZ_OFFSET_MINUTES ?? -new Date().getTimezoneOffset())
 /** "Today" in the user's time zone, as YYYY-MM-DD. */
 export const todayIn = (offsetMinutes, now = Date.now()) => iso(new Date(now + offsetMinutes * 60_000))
 
-export function createRelay({ notion, assistant, dataSourceId = null, stt = null, fetch: fetcher = fetch, today = () => todayIn(OFFSET) }) {
+export function createRelay({ notion, assistant, dataSourceId = null, stt = null, inbox = null, fetch: fetcher = fetch, today = () => todayIn(OFFSET) }) {
   let source = dataSourceId
 
   async function sourceId() {
@@ -42,10 +44,32 @@ export function createRelay({ notion, assistant, dataSourceId = null, stt = null
 
   const decorate = (task, now) => ({ ...task, when: friendly(task.due, now), overdue: Boolean(task.due && task.due < now) })
 
+  async function draft(text, options) {
+    const now = today()
+    const made = await assistant.draft(text, now, options)
+    return { ...made, when: friendly(made.due, now), heard: text }
+  }
+
+  async function save({ title, due, note }) {
+    const clean = String(title ?? '').trim()
+    if (!clean) throw new Error('A task needs a title')
+    const now = today()
+    return decorate(await notion.create(await sourceId(), { title: clean, due: isIsoDate(due) ? due : null, note: String(note ?? '') }), now)
+  }
+
+  async function answer(question) {
+    const now = today()
+    const tasks = (await notion.open(await sourceId())).map((task) => decorate(task, now))
+    return assistant.answer(question, tasks, now)
+  }
+
+  // Telegram drafts go through exactly the same drafting, saving and answering as the glasses.
+  inbox?.attach({ draft, save, answer })
+
   return {
     'GET /status': async () => {
       const schema = await notion.schema(await sourceId())
-      return { list: schema.name, due: Boolean(schema.due), model: assistant.enabled ? assistant.model : null, voice: Boolean(stt?.url) }
+      return { list: schema.name, due: Boolean(schema.due), model: assistant.enabled ? assistant.model : null, voice: Boolean(stt?.url), telegram: Boolean(inbox) }
     },
 
     'GET /today': async () => {
@@ -71,26 +95,29 @@ export function createRelay({ notion, assistant, dataSourceId = null, stt = null
     'POST /draft': async ({ text }) => {
       const spoken = String(text ?? '').trim().slice(0, 600)
       if (!spoken) throw new Error('Nothing to capture')
-      const now = today()
-      const draft = await assistant.draft(spoken, now)
-      return { ...draft, when: friendly(draft.due, now), heard: spoken }
+      return draft(spoken)
     },
 
-    'POST /save': async ({ title, due, note }) => {
-      const clean = String(title ?? '').trim()
-      if (!clean) throw new Error('A task needs a title')
-      const now = today()
-      const task = await notion.create(await sourceId(), { title: clean, due: isIsoDate(due) ? due : null, note: String(note ?? '') })
-      return decorate(task, now)
-    },
+    'POST /save': async (task) => save(task),
 
     /** A question about the open list. Reads only. */
     'POST /ask': async ({ text }) => {
       const question = String(text ?? '').trim().slice(0, 300)
       if (!question) throw new Error('Nothing to answer')
-      const now = today()
-      const tasks = (await notion.open(await sourceId())).map((task) => decorate(task, now))
-      return assistant.answer(question, tasks, now)
+      return answer(question)
+    },
+
+    /** Drafts that arrived through Telegram. With `?wait=N` the reply is held for up to N seconds until something changes. */
+    'GET /inbox': async (_body, _raw, query) => {
+      if (!inbox) return { items: [] }
+      const wait = Math.min(25, Number(query?.get('wait')) || 0)
+      if (wait && !inbox.items.length) await inbox.wait(wait * 1000)
+      return { items: inbox.pending() }
+    },
+
+    'POST /inbox': async ({ id, action }) => {
+      if (!inbox) throw new Error('Telegram is not connected to the relay')
+      return { ok: true, task: await inbox.resolve(String(id), action === 'save' ? 'save' : 'drop', 'glasses') }
     },
 
     'POST /brief': async ({ id, title }) => assistant.brief(String(title ?? ''), await notion.content(String(id))),
@@ -122,7 +149,8 @@ export function serve(routes, { token, origin = '*' }) {
     if (request.method === 'OPTIONS') return response.writeHead(204, { ...headers, 'Access-Control-Max-Age': '86400' }).end()
     if (!authorised(request.headers.authorization, token)) return reply(401, { error: 'Wrong or missing relay token' })
 
-    const route = routes[`${request.method} ${new URL(request.url, 'http://relay').pathname}`]
+    const url = new URL(request.url, 'http://relay')
+    const route = routes[`${request.method} ${url.pathname}`]
     if (!route) return reply(404, { error: 'Not found' })
     try {
       const chunks = []
@@ -134,7 +162,7 @@ export function serve(routes, { token, origin = '*' }) {
       }
       const raw = Buffer.concat(chunks)
       const isJson = String(request.headers['content-type'] ?? '').includes('json')
-      reply(200, await route(isJson && raw.length ? JSON.parse(raw.toString('utf8')) : {}, isJson ? null : raw))
+      reply(200, await route(isJson && raw.length ? JSON.parse(raw.toString('utf8')) : {}, isJson ? null : raw, url.searchParams))
     } catch (error) {
       reply(400, { error: error.message })
     }
@@ -151,11 +179,17 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).p
   const notion = new Notion({ token: env.NOTION_TOKEN })
   const assistant = new Assistant({ key: env.OPENROUTER_API_KEY, model: env.OPENROUTER_MODEL || undefined })
   const stt = env.STT_URL ? { url: env.STT_URL, key: env.STT_KEY ?? '', model: env.STT_MODEL ?? 'whisper-1' } : null
-  const routes = createRelay({ notion, assistant, dataSourceId: env.NOTION_DATA_SOURCE_ID || null, stt })
+  const code = String(100000 + (randomBytes(4).readUInt32BE() % 900000))
+  const inbox = env.TELEGRAM_BOT_TOKEN
+    ? new Inbox({ bot: new Telegram({ token: env.TELEGRAM_BOT_TOKEN }), code, chatId: env.TELEGRAM_CHAT_ID ? Number(env.TELEGRAM_CHAT_ID) : null, log: console.log })
+    : null
+  const routes = createRelay({ notion, assistant, dataSourceId: env.NOTION_DATA_SOURCE_ID || null, stt, inbox })
   serve(routes, { token: TOKEN, origin: ORIGIN }).listen(PORT, () => {
     console.log(`Aside relay on http://localhost:${PORT}`)
     console.log(`Relay token: ${TOKEN}`)
     console.log(`Drafts and briefs: ${assistant.enabled ? assistant.model : 'built-in rules (set OPENROUTER_API_KEY for a model)'}`)
     console.log(`Voice capture: ${stt ? 'on' : 'off (set STT_URL for speech to text)'}`)
+    console.log(`Telegram: ${!inbox ? 'off (set TELEGRAM_BOT_TOKEN to forward messages to your glasses)' : inbox.chat ? `serving chat ${inbox.chat}` : `open your bot and send /start ${code}`}`)
+    void inbox?.run()
   })
 }
