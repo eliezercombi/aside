@@ -15,6 +15,8 @@ export interface Voice {
   start: () => void
   stop: () => Promise<string>
   cancel: () => void
+  /** True when transcripts come from somewhere other than the relay's speech service. */
+  ready?: () => boolean
 }
 
 type Screen =
@@ -169,7 +171,7 @@ export class App {
   }
 
   private listen(): void {
-    if (!this.deps.voice || !this.status.voice) {
+    if (!this.deps.voice || !(this.status.voice || this.deps.voice.ready?.())) {
       return this.finish(false, ['Voice is not set up.', 'Type the task on your phone instead,', 'or add a speech service to the relay.'])
     }
     this.deps.voice.start()

@@ -25,6 +25,8 @@ interface Saved {
 }
 
 function load(): Saved {
+  // `?relay=dev` points at the dev relay on this machine (npm run relay:dev) without saving anything.
+  if (new URLSearchParams(location.search).get('relay') === 'dev') return { relay: { url: 'http://localhost:8788', token: 'dev-token' } }
   try {
     const raw = JSON.parse(localStorage.getItem(STORE) ?? 'null') as Partial<Saved> | null
     if (raw?.relay?.url && raw.relay.token) return { relay: { url: String(raw.relay.url), token: String(raw.relay.token) } }
@@ -64,7 +66,14 @@ const display = new Display(bridge, { log })
 // then sent to the relay, which is the only place that knows the speech service key.
 const pcm: Uint8Array[] = []
 let capturing = false
+
+// For automated recordings, where nobody can speak into the simulator: each `say`
+// in the address stands in for one transcript, in order. Everything after the
+// transcript (drafting, answering, saving) is the real path.
+const scripted = new URLSearchParams(location.search).getAll('say').map((line) => line.trim()).filter(Boolean)
+
 const voice: Voice = {
+  ready: () => scripted.length > 0,
   start: () => {
     pcm.length = 0
     capturing = true
@@ -73,6 +82,7 @@ const voice: Voice = {
   stop: async () => {
     capturing = false
     await bridge.audioControl(false).catch(() => false)
+    if (scripted.length) return scripted.shift() as string
     return pcm.length ? source.transcribe(wavFromPcm(pcm)) : ''
   },
   cancel: () => {
@@ -155,4 +165,4 @@ async function watchInbox(): Promise<void> {
 await app.start()
 setInterval(() => void refresh(), 60_000)
 void watchInbox()
-log(`ready (${preview ? 'browser preview' : 'glasses bridge'}, ${saved.relay ? 'relay' : 'demo list'})`)
+log(`ready (${preview ? 'browser preview' : 'glasses bridge'}, ${saved.relay ? 'relay' : 'demo list'}${scripted.length ? `, ${scripted.length} scripted transcripts` : ''})`)

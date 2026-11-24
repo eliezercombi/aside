@@ -9,7 +9,7 @@
 //   OPENROUTER_MODEL       default anthropic/claude-haiku-5.5
 //   STT_URL, STT_KEY, STT_MODEL   OpenAI-compatible transcription endpoint for voice capture
 //   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (forward messages to your own bot to capture them)
-//   PORT (8788), RELAY_TOKEN (printed if not set), ALLOW_ORIGIN (*), TZ_OFFSET_MINUTES (this machine's zone)
+//   PORT (8788), HOST (all interfaces), RELAY_TOKEN (printed if not set), ALLOW_ORIGIN (*), TZ_OFFSET_MINUTES (this machine's zone)
 //
 // Node 22+, no dependencies.
 
@@ -23,6 +23,8 @@ import { Inbox, Telegram } from './telegram.mjs'
 
 const env = process.env
 const PORT = Number(env.PORT ?? 8788)
+// Interface to listen on. Leave unset to be reachable from your phone; 127.0.0.1 keeps it to this machine.
+const HOST = env.HOST || undefined
 const TOKEN = env.RELAY_TOKEN ?? randomBytes(12).toString('hex')
 const ORIGIN = env.ALLOW_ORIGIN ?? '*'
 // Minutes ahead of UTC. Defaults to the time zone of the machine the relay runs on.
@@ -184,7 +186,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).p
     ? new Inbox({ bot: new Telegram({ token: env.TELEGRAM_BOT_TOKEN }), code, chatId: env.TELEGRAM_CHAT_ID ? Number(env.TELEGRAM_CHAT_ID) : null, log: console.log })
     : null
   const routes = createRelay({ notion, assistant, dataSourceId: env.NOTION_DATA_SOURCE_ID || null, stt, inbox })
-  serve(routes, { token: TOKEN, origin: ORIGIN }).listen(PORT, () => {
+  serve(routes, { token: TOKEN, origin: ORIGIN }).listen(PORT, HOST, () => {
     console.log(`Aside relay on http://localhost:${PORT}`)
     console.log(`Relay token: ${TOKEN}`)
     console.log(`Drafts and briefs: ${assistant.enabled ? assistant.model : 'built-in rules (set OPENROUTER_API_KEY for a model)'}`)
