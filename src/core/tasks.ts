@@ -104,6 +104,12 @@ export class RelaySource implements Source {
   }
 }
 
+/** Today's date where the wearer is, as YYYY-MM-DD. */
+const localToday = (): string => {
+  const now = new Date()
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+}
+
 interface DemoTask { id: string; title: string; offset: number | null; notes: string }
 
 /**
@@ -122,7 +128,7 @@ export class DemoSource implements Source {
   private seq = 10
   private today_: () => string
 
-  constructor(today: () => string = () => new Date().toISOString().slice(0, 10)) {
+  constructor(today: () => string = localToday) {
     this.today_ = today
   }
 

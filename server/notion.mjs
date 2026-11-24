@@ -5,6 +5,8 @@
 // schema, and a task is completed the way that database expects, by checking
 // a checkbox or by moving a Status to its Complete group.
 
+import { addDays } from '../shared/dates.mjs'
+
 export const NOTION_VERSION = '2026-03-11'
 
 /** Decide which properties play which role. Throws with a readable reason when a data source cannot work as a task list. */
@@ -48,16 +50,13 @@ export function toTask(page, schema) {
   }
 }
 
-/** Filter for tasks that are still open and due on or before `until` (or have no date when `undated`). */
-export function openFilter(schema, { until = null, undated = false } = {}) {
+/** Filter for tasks that are still open and, when `before` is given, dated earlier than that day. */
+export function openFilter(schema, { before = null } = {}) {
   const open = schema.done.kind === 'checkbox'
     ? { property: schema.done.name, checkbox: { equals: false } }
     : { property: schema.done.name, status: { does_not_equal: schema.done.closed } }
-  if (!schema.due || (!until && !undated)) return open
-  const when = undated
-    ? { property: schema.due, date: { is_empty: true } }
-    : { property: schema.due, date: { on_or_before: until } }
-  return { and: [open, when] }
+  if (!schema.due || !before) return open
+  return { and: [open, { property: schema.due, date: { before } }] }
 }
 
 export class Notion {
@@ -98,14 +97,21 @@ export class Notion {
   /** Open tasks due today or earlier, oldest first; when there are none, whatever comes next. */
   async today(dataSourceId, today, limit = 20) {
     const schema = await this.schema(dataSourceId)
-    const query = (filter) => this.call('POST', `/v1/data_sources/${dataSourceId}/query`, {
-      filter,
-      page_size: limit,
-      sorts: schema.due ? [{ property: schema.due, direction: 'ascending' }] : [{ timestamp: 'created_time', direction: 'descending' }],
-    })
-    let pages = (await query(openFilter(schema, { until: today }))).results ?? []
-    if (!pages.length) pages = ((await query(openFilter(schema))).results ?? []).slice(0, 5)
-    return pages.map((page) => toTask(page, schema))
+    const query = async (filter, size) => {
+      const found = await this.call('POST', `/v1/data_sources/${dataSourceId}/query`, {
+        filter,
+        page_size: size,
+        sorts: schema.due ? [{ property: schema.due, direction: 'ascending' }] : [{ timestamp: 'created_time', direction: 'descending' }],
+      })
+      return (found.results ?? []).map((page) => toTask(page, schema))
+    }
+    if (!schema.due) return query(openFilter(schema), limit)
+
+    // Notion reads a date-only bound as midnight UTC, while a task may carry a time
+    // and an offset. So the query asks for slightly more than today, and the exact
+    // cut is made here on the date as it is written on the page.
+    const due = (await query(openFilter(schema, { before: addDays(today, 2) }), limit)).filter((task) => task.due && task.due <= today)
+    return due.length ? due : query(openFilter(schema), 5)
   }
 
   async complete(dataSourceId, pageId) {

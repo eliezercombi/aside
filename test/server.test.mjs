@@ -82,14 +82,14 @@ test('any reasonable task database is understood from its schema', () => {
 
 test('open-task filters follow the schema', () => {
   const status = mapSchema(statusSource)
-  assert.deepEqual(openFilter(status, { until: TUE }), {
+  assert.deepEqual(openFilter(status, { before: '2026-11-26' }), {
     and: [
       { property: 'Status', status: { does_not_equal: ['Shipped', 'Archived'] } },
-      { property: 'Due date', date: { on_or_before: TUE } },
+      { property: 'Due date', date: { before: '2026-11-26' } },
     ],
   })
   assert.deepEqual(openFilter(status), { property: 'Status', status: { does_not_equal: ['Shipped', 'Archived'] } })
-  assert.deepEqual(openFilter(mapSchema(checkboxSource), { until: TUE }), { property: 'Done', checkbox: { equals: false } }, 'no date property, no date filter')
+  assert.deepEqual(openFilter(mapSchema(checkboxSource), { before: '2026-11-26' }), { property: 'Done', checkbox: { equals: false } }, 'no date property, no date filter')
 })
 
 test('pages become tasks', () => {
@@ -113,7 +113,7 @@ test('the Notion client sends versioned, authorised requests in the right shape'
   const { notion, calls } = fakeNotion((call) => {
     if (call.path === '/v1/data_sources/ds1') return [200, statusSource]
     if (call.path === '/v1/data_sources/ds1/query') {
-      const dated = JSON.stringify(call.body.filter).includes('on_or_before')
+      const dated = JSON.stringify(call.body.filter).includes('before')
       return [200, { results: dated ? [] : [{ id: 'p9', properties: { Name: { title: [{ plain_text: 'Someday' }] } } }] }]
     }
     if (call.path === '/v1/pages' && call.method === 'POST') return [200, { id: 'new', properties: call.body.properties }]

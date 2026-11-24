@@ -58,7 +58,7 @@ It prints a relay token. Enter the relay address and that token on the phone pag
 | `OPENROUTER_API_KEY` | no | Turns on model-written drafts and briefs |
 | `OPENROUTER_MODEL` | no | Default `anthropic/claude-haiku-5.5`; any OpenRouter model works, including the free ones |
 | `STT_URL`, `STT_KEY`, `STT_MODEL` | no | OpenAI-compatible transcription endpoint for voice capture |
-| `TZ_OFFSET_MINUTES` | no | Your offset from UTC, so "today" is your today |
+| `TZ_OFFSET_MINUTES` | no | Minutes ahead of UTC that decide what "today" is. Defaults to the time zone of the machine the relay runs on |
 
 ## How it is built
 
@@ -67,7 +67,7 @@ src/core      task source interface, relay client, demo list, text layout
 src/ui        pages (576x288 layouts), controller, display adapter, event mapping
 shared/       date parsing and draft checking, used by both the relay and the demo
 server/       relay: Notion client, OpenRouter client, HTTP API; Node built-ins only
-test/         22 tests, run with `npm test`
+test/         25 tests, run with `npm test`
 ```
 
 - The Notion token, the model key and the speech key live only in the relay. The app holds a relay address and a relay token.
@@ -77,7 +77,8 @@ test/         22 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts and every screen flow: 22 automated tests, with Notion and OpenRouter replaced by fakes built from their documentation.
+- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts and every screen flow: 25 automated tests, with Notion and OpenRouter replaced by stand-ins built from their documentation.
+- One of those tests runs the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates.
 - The whole app in a desktop browser on the demo list.
 - TODO before submission: runs against a live Notion workspace, OpenRouter and the simulator are recorded here once done.
 

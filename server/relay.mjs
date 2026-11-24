@@ -8,7 +8,7 @@
 //   OPENROUTER_API_KEY     turns on model-written drafts and briefs
 //   OPENROUTER_MODEL       default anthropic/claude-haiku-5.5
 //   STT_URL, STT_KEY, STT_MODEL   OpenAI-compatible transcription endpoint for voice capture
-//   PORT (8788), RELAY_TOKEN (printed if not set), ALLOW_ORIGIN (*), TZ_OFFSET_MINUTES (0)
+//   PORT (8788), RELAY_TOKEN (printed if not set), ALLOW_ORIGIN (*), TZ_OFFSET_MINUTES (this machine's zone)
 //
 // Node 22+, no dependencies.
 
@@ -23,7 +23,8 @@ const env = process.env
 const PORT = Number(env.PORT ?? 8788)
 const TOKEN = env.RELAY_TOKEN ?? randomBytes(12).toString('hex')
 const ORIGIN = env.ALLOW_ORIGIN ?? '*'
-const OFFSET = Number(env.TZ_OFFSET_MINUTES ?? 0)
+// Minutes ahead of UTC. Defaults to the time zone of the machine the relay runs on.
+const OFFSET = Number(env.TZ_OFFSET_MINUTES ?? -new Date().getTimezoneOffset())
 
 /** "Today" in the user's time zone, as YYYY-MM-DD. */
 export const todayIn = (offsetMinutes, now = Date.now()) => iso(new Date(now + offsetMinutes * 60_000))
@@ -133,6 +134,11 @@ export function serve(routes, { token, origin = '*' }) {
 
 // Start only when run directly, so tests can import the pieces.
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop())) {
+  if (!env.NOTION_TOKEN) {
+    console.error('Set NOTION_TOKEN to a Notion personal access token, for example:')
+    console.error('  NOTION_TOKEN=ntn_... npm run relay')
+    process.exit(1)
+  }
   const notion = new Notion({ token: env.NOTION_TOKEN })
   const assistant = new Assistant({ key: env.OPENROUTER_API_KEY, model: env.OPENROUTER_MODEL || undefined })
   const stt = env.STT_URL ? { url: env.STT_URL, key: env.STT_KEY ?? '', model: env.STT_MODEL ?? 'whisper-1' } : null
@@ -141,5 +147,6 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).p
     console.log(`Aside relay on http://localhost:${PORT}`)
     console.log(`Relay token: ${TOKEN}`)
     console.log(`Drafts and briefs: ${assistant.enabled ? assistant.model : 'built-in rules (set OPENROUTER_API_KEY for a model)'}`)
+    console.log(`Voice capture: ${stt ? 'on' : 'off (set STT_URL for speech to text)'}`)
   })
 }
