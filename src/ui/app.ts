@@ -2,6 +2,7 @@
 // No SDK in here. Gestures come in as plain values, pages go out through
 // `deps.render`, and Notion is reached only through the `Source` interface.
 
+import { isQuestion } from '../../shared/text.mjs'
 import type { Measure } from '../core/format.ts'
 import type { Draft, Source, Status, Task } from '../core/tasks.ts'
 import { ACTIONS, MENU_CAPTURE, MENU_REFRESH, actionsPage, briefPage, clearPage, draftPage, listeningPage, resultPage, todayPage, workingPage } from './pages.ts'
@@ -22,7 +23,7 @@ type Screen =
   | { kind: 'listening' }
   | { kind: 'working'; what: string }
   | { kind: 'draft'; draft: Draft }
-  | { kind: 'brief'; title: string; body: string }
+  | { kind: 'brief'; tag: 'BRIEF' | 'ASKED'; title: string; body: string }
   | { kind: 'result'; ok: boolean; lines: string[]; token: number }
 
 export interface Deps {
@@ -77,7 +78,7 @@ export class App {
       case 'draft':
         return draftPage(screen.draft, measure)
       case 'brief':
-        return briefPage(screen.title, screen.body, measure)
+        return briefPage(screen.tag, screen.title, screen.body, measure)
       case 'result':
         return resultPage(screen.ok, screen.lines, measure)
       default:
@@ -194,11 +195,19 @@ export class App {
     return this.capture(text)
   }
 
-  /** Turn a spoken or typed sentence into a draft. Nothing is saved until the user taps. */
+  /**
+   * A spoken or typed sentence. A question about the list is answered; anything
+   * else becomes a draft, and nothing is saved until the user taps.
+   */
   async capture(spoken: string): Promise<void> {
     if (this.busy) return
     const text = spoken.trim()
     if (!text) return this.finish(false, ['Heard nothing.', 'Hold, speak, then release.'])
+    if (isQuestion(text)) {
+      return this.work('Thinking...', async () => {
+        this.screen = { kind: 'brief', tag: 'ASKED', title: text, body: await this.deps.source.ask(text) }
+      })
+    }
     return this.work('Drafting...', async () => {
       this.screen = { kind: 'draft', draft: await this.deps.source.draft(text) }
     })
@@ -223,7 +232,7 @@ export class App {
 
     if (action === 'Brief me') {
       return this.work('Reading the page...', async () => {
-        this.screen = { kind: 'brief', title: task.title, body: await source.brief(task) }
+        this.screen = { kind: 'brief', tag: 'BRIEF', title: task.title, body: await source.brief(task) }
       })
     }
 

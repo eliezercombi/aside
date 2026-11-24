@@ -22,14 +22,16 @@ tap: actions   swipe: next   hold: capture   double-tap: exit
 | One task per card, overdue first | Swipe | Next task |
 | A task | Tap, then pick **Done**, **Tomorrow** or **Next week** | The page is updated in Notion, in the way that database expects |
 | A task | Tap, then **Brief me** | The task's page, cut down to a few lines that fit the display |
-| Anything | Hold, speak, release | A draft: title, due date and note. Tap saves it to Notion, double-tap discards it |
+| Anything | Hold, say a task, release | A draft: title, due date and note. Tap saves it to Notion, double-tap discards it |
+| Anything | Hold, ask a question, release | "What is due this week?" is answered in a few lines from your open tasks |
 
-Nothing is written to Notion without a tap on a screen that shows exactly what will be written.
+Nothing is written to Notion without a tap on a screen that shows exactly what will be written. Questions only read.
 
 ## What the model does, and what it is not trusted with
 
 - It writes the **draft**: "remind me to call the bank next Friday about the mortgage" becomes *Call the bank about the mortgage, due Fri 4 Dec*.
 - It writes the **brief** of a page.
+- It **answers questions** about your open tasks. It is given the list and returns text; it has no way to change anything, and task titles are passed to it as data. With no model you get an honest summary instead: the counts and what comes first.
 - Its draft is **checked before you see it**: the date has to be a real calendar date that is not in the past, the title cannot be empty. If the model is down, slow or wrong, a rule-based parser produces the draft instead. That parser is also all you get if you configure no model, and it handles "tomorrow", weekdays, "next Friday", "in 2 weeks", "1 Dec", "by the end of the week".
 - It never decides to save anything.
 
@@ -55,7 +57,7 @@ It prints a relay token. Enter the relay address and that token on the phone pag
 | --- | --- | --- |
 | `NOTION_TOKEN` | yes | Notion personal access token or internal connection token |
 | `NOTION_DATA_SOURCE_ID` | no | The task list to use; otherwise the best match is found by search |
-| `OPENROUTER_API_KEY` | no | Turns on model-written drafts and briefs |
+| `OPENROUTER_API_KEY` | no | Turns on model-written drafts, briefs and answers |
 | `OPENROUTER_MODEL` | no | Default `anthropic/claude-haiku-5.5`; any OpenRouter model works, including the free ones |
 | `STT_URL`, `STT_KEY`, `STT_MODEL` | no | OpenAI-compatible transcription endpoint for voice capture |
 | `TZ_OFFSET_MINUTES` | no | Minutes ahead of UTC that decide what "today" is. Defaults to the time zone of the machine the relay runs on |
@@ -65,9 +67,9 @@ It prints a relay token. Enter the relay address and that token on the phone pag
 ```
 src/core      task source interface, relay client, demo list, text layout
 src/ui        pages (576x288 layouts), controller, display adapter, event mapping
-shared/       date parsing and draft checking, used by both the relay and the demo
+shared/       date parsing, draft checking, telling a question from a task; used by the relay and the demo
 server/       relay: Notion client, OpenRouter client, HTTP API; Node built-ins only
-test/         25 tests, run with `npm test`
+test/         31 tests, run with `npm test`
 ```
 
 - The Notion token, the model key and the speech key live only in the relay. The app holds a relay address and a relay token.
@@ -77,7 +79,7 @@ test/         25 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts and every screen flow: 25 automated tests, with Notion and OpenRouter replaced by stand-ins built from their documentation.
+- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts and every screen flow: 31 automated tests, with Notion and OpenRouter replaced by stand-ins built from their documentation.
 - One of those tests runs the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates.
 - The whole app in a desktop browser on the demo list.
 - TODO before submission: runs against a live Notion workspace, OpenRouter and the simulator are recorded here once done.

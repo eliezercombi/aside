@@ -133,6 +133,11 @@ test('glasses to Notion and back over real HTTP', async (t) => {
   assert.equal(w.app.status.list, 'Tasks')
   assert.match(w.textOf('head'), /^TODAY {3}1 of 2 +1 overdue$/)
 
+  await w.app.capture('What is on my plate?')
+  assert.equal(w.textOf('tag'), 'ASKED   What is on my plate?')
+  assert.equal(w.textOf('body'), '5 open: 1 overdue, 1 due today.\n1. Send the board deck to Anna (Yesterday)\n2. Reply to the landlord (Today)\n3. Call the dentist (Tomorrow)')
+  await w.app.input('tap')
+
   await w.app.input('tap')
   await w.choose('Brief me')
   assert.equal(w.textOf('body'), 'Board deck\nUse the Q3 numbers\nKeep it to 10 slides')

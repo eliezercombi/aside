@@ -4,7 +4,10 @@
 import { extractDue, isIsoDate } from './dates.mjs'
 
 const tidy = (text) => {
-  const clean = String(text ?? '').replace(/\s+/g, ' ').trim().replace(/^(remind me to|i need to|i have to|i should|don't forget to|remember to|note to self[:,]?|todo[:,]?|to do[:,]?|add a task to|new task[:,]?|task[:,]?)\s+/i, '').replace(/[.\s]+$/, '')
+  const clean = String(text ?? '').replace(/\s+/g, ' ').trim()
+    .replace(/^((hey|ok|okay|please|can you|could you|would you)[,\s]+)+/i, '')
+    .replace(/^(remind me to|i need to|i have to|i should|don't forget to|remember to|note to self[:,]?|todo[:,]?|to do[:,]?|add a task to|new task[:,]?|task[:,]?)\s+/i, '')
+    .replace(/[.?!\s]+$/, '')
   return clean.charAt(0).toUpperCase() + clean.slice(1)
 }
 
@@ -39,6 +42,45 @@ export function parseJson(text) {
   } catch {
     return null
   }
+}
+
+/**
+ * A model's free-text reply as display lines: list markers removed, blank lines
+ * dropped, cut to a number of lines and characters. A leading number that is
+ * part of the sentence ("3 tasks are due") is kept.
+ */
+export function plainLines(text, maxLines, maxChars) {
+  return String(text ?? '').split('\n')
+    .map((line) => line.replace(/^\s*(?:[-*•]+|\d+[.)])\s+/, '').replace(/[*_`#]/g, '').trim())
+    .filter(Boolean)
+    .slice(0, maxLines)
+    .join('\n')
+    .slice(0, maxChars)
+}
+
+/** Whether a sentence asks about the list rather than adding to it. */
+export function isQuestion(text) {
+  const said = String(text ?? '').trim().toLowerCase().replace(/^(hey|ok|okay|so|and|please)[,\s]+/, '')
+  if (!said) return false
+  // An explicit request to add something is never a question, however it is phrased.
+  if (/\b(remind me|add (a |an |the )?(task|to-?do|item|reminder)|note to self|don't forget|new task)\b/.test(said)) return false
+  if (/^(what|what's|whats|which|when|how many|how much|how busy|how is|how does|do i|did i|have i|am i|is there|are there|anything|should i|where|who|tell me|summari[sz]e)\b/.test(said)) return true
+  return said.endsWith('?')
+}
+
+const short = (title, max = 44) => (title.length > max ? `${title.slice(0, max - 3).trimEnd()}...` : title)
+
+/**
+ * What can be said about the open list without a model: the counts and what
+ * comes first. `tasks` are open tasks with `due` and `when`, oldest first.
+ */
+export function answerByRules(tasks, today) {
+  if (!tasks.length) return 'Nothing is open.'
+  const overdue = tasks.filter((task) => task.due && task.due < today).length
+  const now = tasks.filter((task) => task.due === today).length
+  const parts = [overdue ? `${overdue} overdue` : '', now ? `${now} due today` : ''].filter(Boolean)
+  const head = `${tasks.length} open${parts.length ? `: ${parts.join(', ')}` : ', nothing due today'}.`
+  return [head, ...tasks.slice(0, 3).map((task, i) => `${i + 1}. ${short(task.title)} (${task.when})`)].join('\n')
 }
 
 /** First lines of a page, stripped of Markdown, for when no model is available. */

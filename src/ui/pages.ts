@@ -115,7 +115,7 @@ export function listeningPage(): Page {
     boxes: [
       captureLayer(),
       text(1, 'title', 36, 1, 'Listening...', 4),
-      text(2, 'body', 82, 3, 'Say it the way you would to a colleague:\n"send the deck to Anna on Friday"', 2),
+      text(2, 'body', 82, 4, 'A task:\n"send the deck to Anna on Friday"\nOr a question:\n"what is due this week?"', 2),
       text(3, 'hint', 258, 1, 'release: done   double-tap: cancel', 1),
     ],
   }
@@ -144,13 +144,14 @@ export function draftPage(draft: Draft, measure: Measure): Page {
   }
 }
 
-export function briefPage(title: string, body: string, measure: Measure): Page {
+/** A page of read-only text: the brief of a task (`BRIEF`) or the answer to a question (`ASKED`). */
+export function briefPage(tag: 'BRIEF' | 'ASKED', title: string, body: string, measure: Measure): Page {
   return {
     key: 'brief',
     menu: MENU,
     boxes: [
       captureLayer(),
-      text(1, 'tag', 0, 1, fit(`BRIEF   ${title}`, INNER, measure), 2),
+      text(1, 'tag', 0, 1, fit(`${tag}   ${title}`, INNER, measure), 2),
       text(2, 'body', 40, 7, wrap(body, INNER, 7, measure).join('\n'), 4),
       text(3, 'hint', 258, 1, 'tap: back', 1),
     ],

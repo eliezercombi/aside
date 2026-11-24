@@ -84,6 +84,15 @@ export function createRelay({ notion, assistant, dataSourceId = null, stt = null
       return decorate(task, now)
     },
 
+    /** A question about the open list. Reads only. */
+    'POST /ask': async ({ text }) => {
+      const question = String(text ?? '').trim().slice(0, 300)
+      if (!question) throw new Error('Nothing to answer')
+      const now = today()
+      const tasks = (await notion.open(await sourceId())).map((task) => decorate(task, now))
+      return assistant.answer(question, tasks, now)
+    },
+
     'POST /brief': async ({ id, title }) => assistant.brief(String(title ?? ''), await notion.content(String(id))),
 
     /** WAV in, text out, via the configured transcription service. */

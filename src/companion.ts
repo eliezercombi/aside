@@ -59,9 +59,9 @@ export function mountCompanion(root: HTMLElement, api: CompanionApi): { update: 
       </section>
 
       <section>
-        <h2>Capture</h2>
-        <form data-form="capture"><input name="text" placeholder="send the deck to Anna on Friday" autocomplete="off" maxlength="300"><button>Draft</button></form>
-        <p class="fine">Say it on the glasses (hold the touchpad) or type it here. You get a draft on the display first; it is saved to Notion only when you tap.</p>
+        <h2>Capture or ask</h2>
+        <form data-form="capture"><input name="text" placeholder="send the deck to Anna on Friday" autocomplete="off" maxlength="300"><button>Send</button></form>
+        <p class="fine">Say it on the glasses (hold the touchpad) or type it here. A task comes back as a draft on the display and is saved to Notion only when you tap. A question, such as &quot;what is due this week?&quot;, is answered on the display.</p>
       </section>
 
       <section>

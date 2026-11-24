@@ -114,6 +114,17 @@ export class Notion {
     return due.length ? due : query(openFilter(schema), 5)
   }
 
+  /** Every open task, oldest first, for questions about the whole list. */
+  async open(dataSourceId, limit = 40) {
+    const schema = await this.schema(dataSourceId)
+    const found = await this.call('POST', `/v1/data_sources/${dataSourceId}/query`, {
+      filter: openFilter(schema),
+      page_size: limit,
+      sorts: schema.due ? [{ property: schema.due, direction: 'ascending' }] : [{ timestamp: 'created_time', direction: 'descending' }],
+    })
+    return (found.results ?? []).map((page) => toTask(page, schema))
+  }
+
   async complete(dataSourceId, pageId) {
     const { done } = await this.schema(dataSourceId)
     const value = done.kind === 'checkbox' ? { checkbox: true } : { status: { name: done.set } }

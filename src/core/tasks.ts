@@ -2,7 +2,7 @@
 // the relay (your Notion workspace) or a built-in demo list.
 
 import { addDays, friendly } from '../../shared/dates.mjs'
-import { briefByRules, draftByRules } from '../../shared/text.mjs'
+import { answerByRules, briefByRules, draftByRules } from '../../shared/text.mjs'
 
 export interface Task {
   id: string
@@ -41,6 +41,8 @@ export interface Source {
   draft(text: string): Promise<Draft>
   save(draft: Pick<Draft, 'title' | 'due' | 'note'>): Promise<Task>
   brief(task: Task): Promise<string>
+  /** Answer a question about the open list. Reads only. */
+  ask(question: string): Promise<string>
   transcribe(wav: Uint8Array): Promise<string>
 }
 
@@ -97,6 +99,10 @@ export class RelaySource implements Source {
 
   async brief(task: Task): Promise<string> {
     return (await this.call<{ text: string }>('POST', '/brief', { id: task.id, title: task.title })).text
+  }
+
+  async ask(question: string): Promise<string> {
+    return (await this.call<{ text: string }>('POST', '/ask', { text: question })).text
   }
 
   async transcribe(wav: Uint8Array): Promise<string> {
@@ -181,6 +187,11 @@ export class DemoSource implements Source {
 
   async brief(task: Task): Promise<string> {
     return briefByRules(this.find(task.id).notes) || 'This page is empty.'
+  }
+
+  async ask(): Promise<string> {
+    const open = [...this.items].sort((a, b) => (a.offset ?? 9999) - (b.offset ?? 9999)).map((i) => this.view(i))
+    return answerByRules(open, this.today_())
   }
 
   async transcribe(): Promise<string> {
