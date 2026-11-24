@@ -129,6 +129,36 @@
       "expect": "today"
     },
     {
+      "caption": "Type or forward a message to your own Telegram bot. (Sent from a real chat during this recording.)",
+      "actions": [
+        {
+          "wait": 14000
+        }
+      ],
+      "settle": 1500,
+      "hold": 4.5,
+      "expect": "draft"
+    },
+    {
+      "caption": "It lands on the glasses as a draft. Tap: saved to Notion, and the bot confirms in the chat.",
+      "actions": [
+        "click"
+      ],
+      "settle": 1500,
+      "hold": 2.5,
+      "expect": "result"
+    },
+    {
+      "caption": "Back to the list.",
+      "actions": [
+        {
+          "wait": 2600
+        }
+      ],
+      "hold": 1.2,
+      "expect": "today"
+    },
+    {
       "caption": "Not today? Move it to tomorrow.",
       "actions": [
         "click",
