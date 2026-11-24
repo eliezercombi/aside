@@ -57,6 +57,8 @@ No template to copy. Aside reads the schema of your database and works out which
 
 **In the simulator.** With the dev server running: `npm run simulate`.
 
+**With a relay, still without an account.** `npm run relay:dev` starts the real relay and Notion client against an in-memory task list. On the phone page enter `http://localhost:8788` and the token `dev-token`.
+
 **With your Notion.** Create a [personal access token](https://developers.notion.com/guides/connections-and-tokens/personal-access-tokens), then:
 
 ```bash
@@ -95,7 +97,7 @@ test/         42 tests, run with `npm test`
 
 - Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow and the Telegram bot: 42 automated tests. Notion, OpenRouter and the Telegram Bot API are replaced in them by stand-ins built from their documentation, so none of the three has been called for real yet.
 - Two of those tests run the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates; and a forwarded Telegram message travelling to the display and back.
-- The whole app in a desktop browser on the demo list.
+- The whole app in desktop Chrome: on the demo list, and against the dev relay over HTTP with cross-origin requests (list, brief, question, capture and save, done).
 - TODO before submission: runs against a live Notion workspace, OpenRouter, a real Telegram bot and the simulator are recorded here once done.
 
 Not done: nothing has been tested on physical glasses.
