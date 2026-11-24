@@ -1,0 +1,27 @@
+{
+  "title": "Aside",
+  "subtitle": "Your Notion tasks on Even G2",
+  "note": "recorded from the Even Hub simulator",
+  "outro": "github.com/eliezercombi/aside",
+  "outroNote": "Notion  ·  OpenRouter  ·  Telegram",
+  "ready": "[aside] ready",
+  "launch": "http://localhost:5173/?relay=dev&say=remind%20me%20to%20call%20the%20bank%20next%20Friday%20about%20the%20mortgage&say=what%20is%20due%20this%20week%3F",
+  "step": 500,
+  "scenes": [
+    { "caption": "Today's tasks from your Notion database, overdue first.", "hold": 3.5 },
+    { "caption": "Swipe for the next one.", "actions": ["down", { "wait": 600 }, "down", { "wait": 600 }, "up", "up"], "hold": 1.5 },
+    { "caption": "Tap a task to act on it.", "actions": ["click"], "hold": 2.5 },
+    { "caption": "Brief me: the task's Notion page, cut down to what fits the display.", "actions": ["down", "down", "down", "click"], "settle": 1800, "hold": 4.5 },
+    { "caption": "Tap to go back.", "actions": ["click"], "hold": 1 },
+    { "caption": "Done. One tap, and the page is updated in Notion the way that database expects.", "actions": ["click", { "wait": 700 }, "click"], "settle": 1200, "hold": 2.2 },
+    { "caption": "The list moves on.", "actions": [{ "wait": 2600 }], "hold": 2 },
+    { "caption": "Hold the touchpad and say a task. (No microphone in an automated run: this transcript is scripted.)", "actions": ["long_press"], "hold": 3.5 },
+    { "caption": "\"Remind me to call the bank next Friday about the mortgage\" comes back as a draft with a date.", "actions": ["long_press_release"], "settle": 2500, "hold": 4.5 },
+    { "caption": "Nothing is written until you tap. Tap: saved to Notion.", "actions": ["click"], "settle": 1500, "hold": 2.2 },
+    { "caption": "Hold again and ask instead: \"what is due this week?\"", "actions": [{ "wait": 2600 }, "long_press", { "wait": 1500 }, "long_press_release"], "settle": 2500, "hold": 5.5 },
+    { "caption": "Questions only read. Tap to go back.", "actions": ["click"], "hold": 1.5 },
+    { "caption": "Not today? Move it to tomorrow.", "actions": ["click", { "wait": 700 }, "down", "click"], "settle": 1200, "hold": 2.5 },
+    { "caption": "The system menu has capture and refresh, from any screen.", "actions": [{ "wait": 2600 }, "context_menu"], "hold": 3 },
+    { "caption": "", "actions": ["context_menu"], "hold": 1 }
+  ]
+}

@@ -93,6 +93,18 @@ export async function play(story, sim, { pause = sleep, log = () => {} } = {}) {
   return { timeline, errors }
 }
 
+/** Split a caption into at most two lines of about `width` characters, breaking between words. */
+export function wrapCaption(caption, width = 74) {
+  const words = String(caption).split(/\s+/).filter(Boolean)
+  const lines = ['']
+  for (const word of words) {
+    const last = lines.length - 1
+    if (lines[last] && (lines[last] + ' ' + word).length > width && lines.length < 2) lines.push(word)
+    else lines[last] = lines[last] ? lines[last] + ' ' + word : word
+  }
+  return lines.filter(Boolean)
+}
+
 /** Escape a path for use inside an ffmpeg filter option. */
 export const filterPath = (path) => path.replace(/\\/g, '/').replace(/:/g, '\\:')
 
@@ -106,17 +118,18 @@ const defaultFont = () => ({
  * 1280x720 canvas, the app name above it and the caption below. Paths are
  * relative to the output folder, so only the font needs escaping.
  */
-export function segmentArgs({ frame, seconds, captionFile, headerFile, titleFile, font, output }) {
+export function segmentArgs({ frame, seconds, captionFiles = [], headerFile, titleFile, font, output }) {
   const text = (file, size, y, colour) => `drawtext=fontfile='${filterPath(font)}':textfile=${file}:fontcolor=${colour}:fontsize=${size}:x=(w-text_w)/2:y=${y}`
   // Each step draws on the result of the one before; steps without a text file are skipped.
   const steps = [
-    frame ? 'drawbox=x=60:y=60:w=1160:h=584:color=0x1f3d28:t=2' : null,
-    headerFile ? text(headerFile, 22, 20, '0x7f8a80') : null,
+    frame ? 'drawbox=x=60:y=44:w=1160:h=584:color=0x1f3d28:t=2' : null,
+    headerFile ? text(headerFile, 20, 12, '0x7f8a80') : null,
     titleFile ? text(titleFile, 60, '(h/2)-90', 'white') : null,
-    captionFile ? text(captionFile, 30, frame ? 664 : '(h/2)+10', frame ? 'white' : '0xb8c4bb') : null,
+    // Caption lines are drawn one by one so that each is centred.
+    ...captionFiles.map((file, line) => text(file, 30, frame ? (captionFiles.length > 1 ? 640 : 656) + line * 36 : `(h/2)+${10 + line * 40}`, frame ? 'white' : '0xb8c4bb')),
   ].filter(Boolean)
   const chain = [
-    frame ? '[1:v]scale=1152:576:flags=neighbor[glasses];[0:v][glasses]overlay=64:64[base]' : '[0:v]null[base]',
+    frame ? '[1:v]scale=1152:576:flags=neighbor[glasses];[0:v][glasses]overlay=64:48[base]' : '[0:v]null[base]',
     `[base]${steps.length ? steps.join(',') : 'null'}[out]`,
   ].join(';')
   return [
@@ -161,7 +174,10 @@ export async function build(story, timeline, outDir, { ffmpeg = 'ffmpeg', font =
       await writeFile(join(outDir, 'parts', `${id}.${kind}.txt`), text)
       return `parts/${id}.${kind}.txt`
     }
-    list.push({ id, frame, seconds: entry.seconds, caption: entry.caption ?? '', title: entry.title ?? '', captionFile: await file('caption', entry.caption), titleFile: await file('title', entry.title) })
+    const lines = wrapCaption(entry.caption ?? '')
+    const captionFiles = []
+    for (const [n, line] of lines.entries()) captionFiles.push(await file(`caption${n}`, line))
+    list.push({ id, frame, seconds: entry.seconds, caption: entry.caption ?? '', title: entry.title ?? '', captionFiles, titleFile: await file('title', entry.title) })
   }
   await writeFile(join(outDir, 'timeline.json'), JSON.stringify(list.map(({ id, frame, seconds, title, caption }) => ({ id, frame, seconds, title, caption })), null, 2))
   if (!video) return { frames: timeline.length, seconds: list.reduce((sum, e) => sum + e.seconds, 0), video: null }

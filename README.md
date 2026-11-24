@@ -80,6 +80,19 @@ On real glasses the app runs inside the Even app on your phone, so `localhost` i
 | `TELEGRAM_CHAT_ID` | no | Your chat id, printed after pairing. Set it to stay paired across restarts |
 | `TZ_OFFSET_MINUTES` | no | Minutes ahead of UTC that decide what "today" is. Defaults to the time zone of the machine the relay runs on |
 
+## The demo video is reproducible
+
+`scripts/record.mjs` plays `scripts/story.json` (captions and touchpad actions) through the simulator's automation API, saves the glasses framebuffer after every step and builds the MP4 with ffmpeg:
+
+```bash
+npm run relay:dev        # or the real relay
+npm run dev
+evenhub-simulator "http://localhost:5173/?relay=dev&say=..." --automation-port 9898   # full address: "launch" in the story
+npm run demo:record
+```
+
+Nobody can speak into an automated run, so each `say=` in the address stands in for one voice transcript. Everything after the transcript is the real path, and the video says so on screen.
+
 ## How it is built
 
 ```
@@ -87,7 +100,7 @@ src/core      task source interface, relay client, demo list, text layout
 src/ui        pages (576x288 layouts), controller, display adapter, event mapping
 shared/       date parsing, draft checking, telling a question from a task; used by the relay and the demo
 server/       relay: Notion client, OpenRouter client, Telegram bot, HTTP API; Node built-ins only
-test/         42 tests, run with `npm test`
+test/         47 tests, run with `npm test`
 ```
 
 - The Notion token, the model key and the speech key live only in the relay. The app holds a relay address and a relay token.
@@ -97,7 +110,7 @@ test/         42 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow and the Telegram bot: 42 automated tests. Notion, OpenRouter and the Telegram Bot API are replaced in them by stand-ins built from their documentation, so none of the three has been called for real yet.
+- Date parsing, schema detection, Notion request shapes, draft checking, the relay routes, layouts, every screen flow, the Telegram bot and the demo recorder: 47 automated tests. Notion, OpenRouter and the Telegram Bot API are replaced in them by stand-ins built from their documentation, so none of the three has been called for real yet.
 - Two of those tests run the whole path over real HTTP: controller, relay client, relay, Notion client, and an in-memory stand-in for the Notion API that applies filters, sorts and updates; and a forwarded Telegram message travelling to the display and back.
 - The whole app in desktop Chrome: on the demo list, and against the dev relay over HTTP with cross-origin requests (list, brief, question, capture and save, done).
 - TODO before submission: runs against a live Notion workspace, OpenRouter, a real Telegram bot and the simulator are recorded here once done.
